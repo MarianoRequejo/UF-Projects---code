@@ -1,0 +1,59 @@
+#include <Servo.h>
+
+Servo Servo1;
+
+#define buzzer 10 // BUZZER TO PIN 10
+const int servo= 9; //SERVO PIN 9
+const int msensor = A0; //MOISTURE SENSOR PIN A0
+const int powerpin = 7; //POWER FOR MOISTURE SENSOR PIN 7
+const int RED = 3; //RED LED PIN 3
+const int GREEN= 4; //GREEN LED PIN 4
+const int THRESHOLD =   600; // MOISTURE LEVEL THRESHOLD
+const int loopdelay = 5000; // DELAY TIME 10 SECONDS 
+
+unsigned long buzzerActiveTime = 0;
+bool buzzerTriggered = false;
+
+void setup() {
+    Serial.begin(9600); 
+    Servo1.attach(servo); //SERVO ATTACHED AS A PIN
+    pinMode(powerpin, OUTPUT); //MOISTURE SENSOR AS AN OUTPUT
+    pinMode(RED, OUTPUT); //RED LED AS AN OUTPUT
+    pinMode(GREEN, OUTPUT); //GREEN LED AS AN OUTPUT
+    pinMode(buzzer, OUTPUT); //BUZZER AS AN OUTPUT
+}
+
+void loop(){
+   digitalWrite(powerpin, HIGH); // MOISTURE SENSOR ON
+    delay(2500); //SENSOR TO STABILIZE 2.5 SECONDS
+    int sensorValue = analogRead(msensor); //READS OUT MOISTURE SENSOR VALUE - TESTING REASONS
+    digitalWrite(powerpin, LOW); //MOISTURE SENSOR OFF
+    Serial.println(sensorValue); //PRINTS OUT MOISTURE VALUE
+    
+    if (sensorValue > THRESHOLD) { //IF PLANT DOES NOT NEED WATER
+        digitalWrite(RED, LOW); //RED LED OFF
+        digitalWrite(GREEN, HIGH); //GREEN LED ON
+   } else { //IF PLANT NEEDS WATER
+        digitalWrite(RED, HIGH); //RED LED ON
+        digitalWrite(GREEN, LOW); //GREEN LED OFF
+        Servo1.write(180); //SERVO ROTATES TO OPEN (OPENED)
+        delay(5500); //WAITS 5.5 SECONDS
+        Servo1.write(0); //SERVO BACK TO ORIGINAL POSITION (CLOSED)
+    }
+
+    if (sensorValue < THRESHOLD && !buzzerTriggered) { //IF PLANT NEEDS WATER AND BUZZER HAS NOT BEEN TRIGGERED
+        buzzerActiveTime = millis(); //STARTS RECORDING TIME
+        buzzerTriggered = true; //SET BUZZER TIME TRUE
+    }
+
+    if (sensorValue < THRESHOLD && millis() - buzzerActiveTime >= 36000) { // If 36 seconds have passed
+        tone(buzzer, 15000, 5000); //SOUND BUZZER 15kHZ FOR 5 SECONDS
+        delay(1000); //WAITS 1 SECOND
+        tone(buzzer, 10000, 5000); //SOUND BUZZER 10kHz FOR 5 SECONDS
+        delay(1000); //WAITS 1 SECOND
+        tone(buzzer, 15000, 5000); //SOUND BUZZER 15kHZ FOR 5 SECONDS
+        buzzerTriggered = false; //RESETS BUZZER TIME (FALSE)
+    }
+
+    delay(loopdelay); //LOOP TIME 5 SECONDS
+}
